@@ -2,11 +2,11 @@ name: Aclclouds Auto Renew
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 */4 * * *'
+ # schedule:
+#    - cron: '0 */4 * * *'
 
 jobs:
-  Claim_Credit:
+  Auto_Renew:
     runs-on: ubuntu-latest
 
     steps:
