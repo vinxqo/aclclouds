@@ -77,6 +77,13 @@ class AclcloudsRenewal:
         except Exception as e:
             self.log(f"❌ TG 推送失败: {e}")
 
+    def get_expiry_time(self, sb):
+        selector = ".projects-card-expiry .projects-expiry-value"
+        # 等待元素可见（SeleniumBase 内置等待）
+        sb.wait_for_element_visible(selector, timeout=10)
+        # 获取文本
+        return sb.get_text(selector).strip()
+
     def run(self):
         self.log("=" * 40)
         self.log("🚀 Aclclouds - Renew流程")
@@ -131,9 +138,11 @@ class AclcloudsRenewal:
                 self.log("📂 进入Project页面")
                 sb.uc_open_with_reconnect(PROJECT_URL, reconnect_time=25)
                 time.sleep(5)
+                time_before = self.get_expiry_time(sb)
                 poject_screenshot = f"{self.screenshot_dir}/poject.png"
                 sb.save_screenshot(poject_screenshot)
-                self.send_telegram_notify("访问项目页面", poject_screenshot)
+                self.send_telegram_notify(f"访问项目页面\n剩余时间：{time_before}", poject_screenshot)
+                
                 return
             
             except Exception as e:
