@@ -138,11 +138,28 @@ class AclcloudsRenewal:
                 self.log("📂 进入Project页面")
                 sb.uc_open_with_reconnect(PROJECT_URL, reconnect_time=25)
                 time.sleep(5)
+                self.sb.scroll_to_bottom() # 滑动到底部
+
+                # 4. 判断是否有Renew按钮
+                selector = "button:contains('Renew')"
+                self.log("🖱️ 查找Renew按钮")
                 time_before = self.get_expiry_time(sb)
+                if not sb.is_element_visible(selector):
+                    self.dump_debug(
+                        "🎉Aclclouds 自动续期",
+                        f"🕒当前无需续期\n🚀剩余使用时间：{time_before}"
+                    )
+                    return
+                # 点击Renew按钮
+                self.log("✅ 找到Renew按钮")
+                sb.wait_for_element_visible(selector, timeout=10)
+                sb.scroll_to(selector)
+                self.human_wait()
+                sb.click(selector)
                 poject_screenshot = f"{self.screenshot_dir}/poject.png"
                 sb.save_screenshot(poject_screenshot)
-                self.send_telegram_notify(f"访问项目页面\n剩余时间：{time_before}", poject_screenshot)
-                
+                self.send_telegram_notify("访问项目页面", poject_screenshot)
+
                 return
             
             except Exception as e:
