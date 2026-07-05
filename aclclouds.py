@@ -80,24 +80,9 @@ class AclcloudsRenewal:
         except Exception as e:
             self.log(f"❌ TG 推送失败: {e}")
 
-    def discord_login(self, sb, EMAIL, PASSWORD):
-        self.log("🚀 透过discord进行登录")
-        #sb.click('text=Continue with Discord')
-        time.sleep(5)
-
-        self.log("✏️ 输入账号密码")
-
-        sb.fill('input[name="email"]', EMAIL)
-        sb.fill('input[name="password"]', PASSWORD)
-
-        self.log("📤 提交登录")
-        sb.click('button[type="submit"]')
-
-        time.sleep(10)
-
     def oauth_debug(self, sb):
 
-        self.log("🔐 Discord OAuth 页面分析开始")
+        self.log("🔐 Discord OAuth 稳定分析开始")
 
         def is_clickable(el):
             try:
@@ -105,30 +90,36 @@ class AclcloudsRenewal:
             except:
                 return False
 
-        def get_score(el):
-            """判断是不是授权按钮"""
+        def get_full_text(el):
+            """Discord 最关键：不要只用 el.text"""
             try:
-                txt = (el.text or "").lower()
-                aria = (el.get_attribute("aria-label") or "").lower()
-                val = (el.get_attribute("value") or "").lower()
-                html = (el.get_attribute("innerHTML") or "").lower()
-
-                full = " ".join([txt, aria, val, html])
-
-                keywords = [
-                    "authorize",
-                    "authorize app",
-                    "authorize this application",
-                    "allow",
-                    "continue",
-                    "yes",
-                    "accept",
-                    "authorize discord"
+                parts = [
+                    el.text,
+                    el.get_attribute("innerText"),
+                    el.get_attribute("textContent"),
+                    el.get_attribute("aria-label"),
+                    el.get_attribute("value"),
+                    el.get_attribute("innerHTML"),
                 ]
-
-                return any(k in full for k in keywords)
+                return " ".join([p for p in parts if p]).lower()
             except:
-                return False
+                return ""
+
+        def is_authorize_button(el):
+            text = get_full_text(el)
+
+            keywords = [
+                "authorize",
+                "authorization",
+                "authorize application",
+                "authorize app",
+                "allow",
+                "continue",
+                "accept",
+                "yes"
+            ]
+
+            return any(k in text for k in keywords)
 
         def find_buttons(sb):
             selectors = [
@@ -145,9 +136,10 @@ class AclcloudsRenewal:
                     els.extend(sb.find_elements(s))
                 except:
                     pass
+
             return els
 
-        def scroll(sb):
+        def scroll_page(sb):
             try:
                 sb.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(0.5)
@@ -158,18 +150,6 @@ class AclcloudsRenewal:
                     document.documentElement.scrollTop = document.documentElement.scrollHeight;
                 """)
 
-                # 遍历可滚动容器
-                sb.execute_script("""
-                    let all = document.querySelectorAll('*');
-                    for (let el of all) {
-                        try {
-                            if (el.scrollHeight > el.clientHeight) {
-                                el.scrollTop = el.scrollHeight;
-                            }
-                        } catch(e) {}
-                    }
-                """)
-
                 sb.send_keys("body", Keys.PAGE_DOWN)
                 sb.send_keys("body", Keys.END)
 
@@ -177,89 +157,79 @@ class AclcloudsRenewal:
                     ActionChains(sb.driver).send_keys(Keys.PAGE_DOWN).perform()
                 except:
                     pass
-
             except:
                 pass
 
-    # =========================
-    # 主循环
-    # =========================
-    for i in range(20):
-
-        self.log(f"🔍 OAuth 扫描 {i+1}/20")
-
-        time.sleep(2)
-        scroll(sb)
-
-        # 等页面稳定一点（Discord 很关键）
-        time.sleep(1)
-
-        url = sb.get_current_url()
-        body = sb.get_text("body").lower()
-
         # =========================
-        # 已完成判断
+        # 主循环（修复缩进问题）
         # =========================
-        if "client.hnhost.net" in url:
-            self.log("✅ 已跳回目标站点（OAuth 完成）")
-            return True
+        for i in range(20):
 
-        # =========================
-        # 找按钮
-        # =========================
-        els = find_buttons(sb)
+            self.log(f"🔍 OAuth 扫描 {i+1}/20")
 
-        self.log(f"🧩 找到可交互元素: {len(els)}")
+            time.sleep(2)
+            scroll_page(sb)
+            time.sleep(1)
 
-        best_el = None
+            url = sb.get_current_url()
 
-        for el in els:
-            try:
-                if not is_clickable(el):
+            # ✅ 成功判断
+            if "client.hnhost.net" in url:
+                self.log("✅ OAuth 完成，已返回目标站点")
+                return True
+
+            els = find_buttons(sb)
+
+            self.log(f"🧩 检测到元素: {len(els)}")
+
+            best = None
+
+            for el in els:
+                try:
+                    if not is_clickable(el):
+                        continue
+
+                    if is_authorize_button(el):
+                        best = el
+                        break
+
+                except:
                     continue
 
-                if get_score(el):
-                    best_el = el
-                    break
-
-            except:
-                pass
-
-        # =========================
-        # 点击逻辑（重点）
-        # =========================
-        if best_el:
-
-            try:
-                self.log("🟢 找到 Discord OAuth 按钮，准备点击")
-
-                sb.execute_script(
-                    "arguments[0].scrollIntoView({block:'center'});",
-                    best_el
-                )
-
-                time.sleep(1)
-
-                # 三层点击策略（Discord 必备）
+            # =========================
+            # 点击逻辑（Discord 必杀三连）
+            # =========================
+            if best:
                 try:
-                    best_el.click()
-                except:
+                    self.log("🟢 找到 OAuth 按钮，准备点击")
+
+                    sb.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        best
+                    )
+
+                    time.sleep(1)
+
+                    # 三重点击（Discord 必须这样做才稳）
                     try:
-                        ActionChains(sb.driver).move_to_element(best_el).click().perform()
+                        best.click()
                     except:
-                        sb.execute_script("arguments[0].click();", best_el)
+                        try:
+                            ActionChains(sb.driver).move_to_element(best).click().perform()
+                        except:
+                            sb.execute_script("arguments[0].click();", best)
 
-                self.log("✅ 已点击 OAuth 授权按钮")
+                    self.log("✅ 已点击 OAuth 按钮")
 
-                time.sleep(8)
+                    time.sleep(8)
 
-            except Exception as e:
-                self.log(f"❌ 点击失败: {e}")
+                except Exception as e:
+                    self.log(f"❌ 点击失败: {e}")
 
-        else:
-            self.log("⚠️ 未找到明显 OAuth 按钮")
+            else:
+                self.log("⚠️ 未找到 OAuth 按钮")
 
-    return False
+        return False
 
     def get_expiry_time(self, sb):
         selector = ".projects-card-expiry .projects-expiry-value"
