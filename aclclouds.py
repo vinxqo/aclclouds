@@ -19,20 +19,15 @@ print(f"[DEBUG] Env DISPLAY: {os.environ.get('DISPLAY')}")
 print(f"[DEBUG] Env XAUTHORITY: {os.environ.get('XAUTHORITY')}")
 
 from seleniumbase import SB
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 
 # ================= 配置区域 =================
 PROXY_URL = os.getenv("PROXY", "")  # 代理
-EMAIL = os.getenv("EMAIL")  # discord邮箱
-PASSWORD = os.getenv("PASSWORD")  # discord密码
+COOKIE = os.getenv("COOKIE")  # 需要注入的Cookies
 TG_TOKEN = os.getenv("TG_TOKEN")  # tg通知token
 TG_CHAT_ID = os.getenv("TG_CHAT_ID")  # tg通知chat_id
 
 # 目标 URL
-LOGIN_URL = "https://dash.aclclouds.com/auth/oauth/discord"
+LOGIN_URL = "https://dash.aclclouds.com/auth/login"
 PROJECT_URL = "https://dash.aclclouds.com/projects"
 # ===========================================
 
@@ -82,114 +77,6 @@ class AclcloudsRenewal:
         except Exception as e:
             self.log(f"❌ TG 推送失败: {e}")
 
-    def discord_login(self, sb, EMAIL, PASSWORD):
-        self.log("🚀 透过discord进行登录")
-        time.sleep(5)
-
-        self.log("✏️ 输入账号密码")
-
-        sb.fill('input[name="email"]', EMAIL)
-        sb.fill('input[name="password"]', PASSWORD)
-
-        self.log("📤 提交登录")
-        sb.click('button[type="submit"]')
-
-        time.sleep(10)
-
-    # ======================
-    # OAuth（原逻辑完全不动）
-    # ======================
-    def oauth_debug(self, sb):
-
-        self.log("🔐 OAuth 页面分析开始")
-
-        for i in range(20):
-
-            self.log(f"🔍 分析 {i+1}/20")
-            time.sleep(2)
-
-            try:
-                sb.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(0.5)
-                sb.execute_script("window.scrollTo(0, 0);")
-
-                sb.execute_script("""
-                    document.body.scrollTop = document.body.scrollHeight;
-                    document.documentElement.scrollTop = document.documentElement.scrollHeight;
-                """)
-
-                sb.execute_script("""
-                    let all = document.querySelectorAll('*');
-                    for (let el of all) {
-                        try {
-                            if (el.scrollHeight > el.clientHeight) {
-                                el.scrollTop = el.scrollHeight;
-                            }
-                        } catch(e) {}
-                    }
-                """)
-
-                try:
-                    ActionChains(sb.driver).send_keys(Keys.PAGE_DOWN).perform()
-                except:
-                    pass
-
-            except:
-                pass
-
-            body = sb.get_text("body").lower()
-
-            if "authorize" in body:
-
-                try:
-                    self.log("🟢 检测到 Authorize，尝试点击")
-
-                    # ✅ 修改点 1：更稳 XPath + clickable
-                    wait = WebDriverWait(sb.driver, 20)
-
-                    btn = wait.until(
-                        EC.element_to_be_clickable(
-                            (By.XPATH,
-                             "//*[self::button or self::a or @role='button']"
-                             "[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'authorize')]")
-                        )
-                    )
-
-                    # ✅ 修改点 2：防止 session 已断
-                    try:
-                        _ = sb.driver.current_url
-                    except:
-                        self.log("❌ WebDriver session 已断开")
-                        return False
-
-                    # scroll 到中间
-                    sb.execute_script(
-                        "arguments[0].scrollIntoView({block:'center'});",
-                        btn
-                    )
-                    time.sleep(1)
-
-                    # ✅ 修改点 3：更稳点击 fallback
-                    try:
-                        btn.click()
-                    except:
-                        try:
-                            ActionChains(sb.driver).move_to_element(btn).click().perform()
-                        except:
-                            sb.execute_script("arguments[0].click();", btn)
-
-                    self.log("✅ 已点击 Authorize")
-                    time.sleep(10)
-
-                except Exception as e:
-                    self.log(f"❌ Authorize 点击失败: {e}")
-
-            if "client.hnhost.net" in sb.get_current_url():
-                self.log("✅ 已跳回目标站点（OAuth完成）")
-                return True
-
-        return False
-
     def get_expiry_time(self, sb):
         selector = ".projects-card-expiry .projects-expiry-value"
         # 等待元素可见（SeleniumBase 内置等待）
@@ -231,28 +118,30 @@ class AclcloudsRenewal:
                 # 2. 访问登录首页
                 self.log("🔗 访问登录首页...")
                 sb.uc_open_with_reconnect(LOGIN_URL, reconnect_time=25)
-                time.sleep(10)
-                self.discord_login(sb, EMAIL, PASSWORD)
+                sb.add_cookie({
+                    "name": "remember_web_59ba36addc2b2f9401580f014c7f58ea4e30989d",
+                    "value": COOKIE,
+                    "domain": "dash.aclclouds.com",
+                    "path": "/",
+                    "httpOnly": True,
+                    "secure": True,
+                    "sameSite": "Lax",
+                    "expires": int(time.time()) + 3600 * 24 * 365
+                })
+                self.log("✅ 注入Cookie成功")
                 login_screenshot = f"{self.screenshot_dir}/login.png"
                 sb.save_screenshot(login_screenshot)
-                self.send_telegram_notify("discord", login_screenshot)
                 time.sleep(5)
-                self.oauth_debug(sb)
-                self.log("✅ Discord登录成功")
-                time.sleep(5)
-                login_screenshot = f"{self.screenshot_dir}/login.png"
-                sb.save_screenshot(login_screenshot)
                 self.send_telegram_notify("访问登录页面", login_screenshot)
-                return
 
                 # 3. 进入Project页面
                 self.log("📂 进入Project页面")
                 sb.uc_open_with_reconnect(PROJECT_URL, reconnect_time=25)
                 time.sleep(5)
                 sb.scroll_to_bottom() # 滑动到底部
-                #poject_screenshot = f"{self.screenshot_dir}/poject.png"
-                #sb.save_screenshot(poject_screenshot)
-                #self.send_telegram_notify("访问项目页面", poject_screenshot)
+                poject_screenshot = f"{self.screenshot_dir}/poject.png"
+                sb.save_screenshot(poject_screenshot)
+                self.send_telegram_notify("访问项目页面", poject_screenshot)
 
                 # 4. 判断是否有Renew按钮
                 selector = "button:contains('Renew')"
@@ -269,9 +158,9 @@ class AclcloudsRenewal:
                 sb.scroll_to(selector)
                 time.sleep(5)
                 sb.click(selector)
-                #renew_screenshot = f"{self.screenshot_dir}/renew.png"
-                #sb.save_screenshot(renew_screenshot)
-                #self.send_telegram_notify("已点击Renew按钮", renew_screenshot)
+                renew_screenshot = f"{self.screenshot_dir}/renew.png"
+                sb.save_screenshot(renew_screenshot)
+                self.send_telegram_notify("已点击Renew按钮", renew_screenshot)
 
                 # 5.点击Verify按钮
                 selector = ".auth-captcha-checkbox"
