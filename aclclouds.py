@@ -80,7 +80,7 @@ class AclcloudsRenewal:
 
     def discord_login(self, sb, EMAIL, PASSWORD):
         self.log("🚀 透过discord进行登录")
-        sb.click('text=Continue with Discord')
+        #sb.click('text=Continue with Discord')
         time.sleep(5)
 
         self.log("✏️ 输入账号密码")
@@ -212,7 +212,7 @@ class AclcloudsRenewal:
                 # 2. 访问登录首页
                 self.log("🔗 访问登录首页...")
                 sb.uc_open_with_reconnect(LOGIN_URL, reconnect_time=25)
-                time.sleep(5)
+                time.sleep(10)
                 self.discord_login(sb, EMAIL, PASSWORD)
                 time.sleep(5)
                 self.oauth_debug(sb)
