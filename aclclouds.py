@@ -213,6 +213,9 @@ class AclcloudsRenewal:
                 sb.uc_open_with_reconnect(LOGIN_URL, reconnect_time=25)
                 time.sleep(5)
                 self.discord_login(sb, EMAIL, PASSWORD)
+                login_screenshot = f"{self.screenshot_dir}/login.png"
+                sb.save_screenshot(login_screenshot)
+                self.send_telegram_notify("discord", login_screenshot)
                 time.sleep(5)
                 self.oauth_debug(sb)
                 self.log("✅ Discord登录成功")
