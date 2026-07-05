@@ -92,12 +92,12 @@ class AclcloudsRenewal:
         
         # 使用 headed=True 强制有头模式渲染到 VNC
         with SB(
-            uc=True,            # 启用反检测模式
-            test=True, 
+            uc=True,            # 启用反检测模式 
             headed=True,        # 关键：强制有头模式
             headless=False,     # 明确禁用 headless
             xvfb=False,         # 禁用内部虚拟显示器，使用系统 DISPLAY
-            chromium_arg="--no-sandbox,--disable-dev-shm-usage,--disable-gpu,--window-position=0,0,--start-maximized",
+            user_data_dir="./chrome_profile", # 持久化浏览器身份
+            chromium_arg="--no-sandbox,--disable-dev-shm-usage,--lang=zh-CN,-disable-blink-features=AutomationControlled", # 减少奇怪启动参数
             proxy=PROXY_URL if PROXY_URL else None
         ) as sb:
             try:
