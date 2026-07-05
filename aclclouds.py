@@ -129,10 +129,6 @@ class AclcloudsRenewal:
                     }
                 """)
 
-                sb.send_keys("body", Keys.PAGE_DOWN)
-                sb.send_keys("body", Keys.PAGE_DOWN)
-                sb.send_keys("body", Keys.END)
-
                 try:
                     ActionChains(sb.driver).send_keys(Keys.PAGE_DOWN).perform()
                 except:
@@ -141,32 +137,52 @@ class AclcloudsRenewal:
             except:
                 pass
 
-            #self.shot(sb, f"oauth_debug_{i}.png", "OAuth状态")
-
             body = sb.get_text("body").lower()
 
             if "authorize" in body:
+
                 try:
                     self.log("🟢 检测到 Authorize，尝试点击")
 
-                    els = sb.find_elements("button") + sb.find_elements("a")
+                    # ✅ 修改点 1：更稳 XPath + clickable
+                    wait = WebDriverWait(sb.driver, 20)
 
-                    for el in els:
+                    btn = wait.until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH,
+                             "//*[self::button or self::a or @role='button']"
+                             "[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'authorize')]")
+                        )
+                    )
+
+                    # ✅ 修改点 2：防止 session 已断
+                    try:
+                        _ = sb.driver.current_url
+                    except:
+                        self.log("❌ WebDriver session 已断开")
+                        return False
+
+                    # scroll 到中间
+                    sb.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});",
+                        btn
+                    )
+                    time.sleep(1)
+
+                    # ✅ 修改点 3：更稳点击 fallback
+                    try:
+                        btn.click()
+                    except:
                         try:
-                            if "authorize" in (el.text or "").lower():
-                                sb.execute_script(
-                                    "arguments[0].scrollIntoView({block:'center'});",
-                                    el
-                                )
-                                time.sleep(1)
-                                sb.execute_script("arguments[0].click();", el)
-                                self.log("✅ 已点击 Authorize")
-                                time.sleep(10)
-                                break
+                            ActionChains(sb.driver).move_to_element(btn).click().perform()
                         except:
-                            pass
-                except:
-                    pass
+                            sb.execute_script("arguments[0].click();", btn)
+
+                    self.log("✅ 已点击 Authorize")
+                    time.sleep(10)
+
+                except Exception as e:
+                    self.log(f"❌ Authorize 点击失败: {e}")
 
             if "client.hnhost.net" in sb.get_current_url():
                 self.log("✅ 已跳回目标站点（OAuth完成）")
