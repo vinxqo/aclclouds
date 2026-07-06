@@ -19,6 +19,7 @@ print(f"[DEBUG] Env DISPLAY: {os.environ.get('DISPLAY')}")
 print(f"[DEBUG] Env XAUTHORITY: {os.environ.get('XAUTHORITY')}")
 
 from seleniumbase import SB
+from datetime import datetime, timezone
 
 # ================= 配置区域 =================
 PROXY_URL = os.getenv("PROXY", "")  # 代理
@@ -148,9 +149,6 @@ class AclcloudsRenewal:
                 r = session.get(CHECK_URL)
                 time.sleep(2)
                 #datas = sb.uc_open_with_reconnect(CHECK_URL, reconnect_time=25)
-                check_screenshot = f"{self.screenshot_dir}/check.png"
-                sb.save_screenshot(check_screenshot)
-                self.send_telegram_notify("Check", check_screenshot)
                 data = r.json()
                 expires_at_str = data["data"][0]["attributes"]["expires_at"]
                 expires_at = datetime.fromisoformat(expires_at_str)
