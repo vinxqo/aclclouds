@@ -166,10 +166,14 @@ class AclcloudsRenewal:
                 sb.click('a[aria-label="My services"]')
                 time.sleep(5)
                 sb.scroll_to_bottom() # 滑动到底部
+                sb.execute_script("""
+                let btns = [...document.querySelectorAll('button')];
+                let closeBtn = btns.find(b => b.innerText.includes('Close'));
+                if (closeBtn) closeBtn.click();
+                """) # 关闭 Close
                 home_screenshot = f"{self.screenshot_dir}/home.png"
                 sb.save_screenshot(home_screenshot)
                 self.send_telegram_notify("访问项目页面", home_screenshot)
-                return
 
                 # 2. 判断是否有Renew按钮
                 selector = "button:contains('Renew')"
