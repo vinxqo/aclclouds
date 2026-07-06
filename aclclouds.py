@@ -135,11 +135,17 @@ class AclcloudsRenewal:
                 self.log("📂 进入Home页面")
                 sb.uc_open_with_reconnect(HOME_URL, reconnect_time=25)
                 time.sleep(5)
+                home_screenshot = f"{self.screenshot_dir}/home.png"
+                sb.save_screenshot(home_screenshot)
+                self.send_telegram_notify("Home", home_screenshot)
 
                 # 4. 检查剩余时间
                 self.log("📂 进入Client页面")
                 datas = sb.uc_open_with_reconnect(CHECK_URL, reconnect_time=25)
-                return datas
+                check_screenshot = f"{self.screenshot_dir}/check.png"
+                sb.save_screenshot(check_screenshot)
+                self.send_telegram_notify("Check", check_screenshot)
+                return
                 data = json.loads(datas)
                 expires_at_str = data["data"][0]["attributes"]["expires_at"]
                 expires_at = datetime.fromisoformat(expires_at_str)
