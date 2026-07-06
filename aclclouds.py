@@ -133,7 +133,8 @@ class AclcloudsRenewal:
 
                 # 3. 检查剩余时间
                 self.log("📂 进入Client页面")
-                data = sb.uc_open_with_reconnect(CHECK_URL, reconnect_time=25)
+                datas = sb.uc_open_with_reconnect(CHECK_URL, reconnect_time=25)
+                data = json.loads(datas)
                 expires_at_str = data["data"][0]["attributes"]["expires_at"]
                 expires_at = datetime.fromisoformat(expires_at_str)
                 now = datetime.now(timezone.utc)
@@ -143,7 +144,6 @@ class AclcloudsRenewal:
                     self.send_telegram_notify("🎉Aclclouds 自动续期\n⏰未到续期时间,流程结束", "")
                     return
                 else:
-         
                 # 1. 进入Home页面
                 self.log("📂 进入Home页面并点击My services")
                 sb.uc_open_with_reconnect(HOME_URL, reconnect_time=25)
@@ -152,12 +152,12 @@ class AclcloudsRenewal:
                 sb.click('a[aria-label="My services"]')
                 time.sleep(5)
                 sb.scroll_to_bottom() # 滑动到底部
-                poject_screenshot = f"{self.screenshot_dir}/poject.png"
-                sb.save_screenshot(poject_screenshot)
-                self.send_telegram_notify("访问项目页面", poject_screenshot)
+                home_screenshot = f"{self.screenshot_dir}/home.png"
+                sb.save_screenshot(home_screenshot)
+                self.send_telegram_notify("访问项目页面", home_screenshot)
                 return
 
-                # 4. 判断是否有Renew按钮
+                # 2. 判断是否有Renew按钮
                 selector = "button:contains('Renew')"
                 self.log("🖱️ 查找Renew按钮")
                 time_before = self.get_expiry_time(sb)
@@ -176,7 +176,7 @@ class AclcloudsRenewal:
                 sb.save_screenshot(renew_screenshot)
                 self.send_telegram_notify("已点击Renew按钮", renew_screenshot)
 
-                # 5.点击Verify按钮
+                # 3.点击Verify按钮
                 selector = ".auth-captcha-checkbox"
                 self.log("🖱️ 点击验证按钮")
                 sb.wait_for_element_visible(selector, timeout=10)
