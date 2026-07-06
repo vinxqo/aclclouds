@@ -139,6 +139,7 @@ class AclcloudsRenewal:
                 # 4. 检查剩余时间
                 self.log("📂 进入Client页面")
                 datas = sb.uc_open_with_reconnect(CHECK_URL, reconnect_time=25)
+                return datas
                 data = json.loads(datas)
                 expires_at_str = data["data"][0]["attributes"]["expires_at"]
                 expires_at = datetime.fromisoformat(expires_at_str)
