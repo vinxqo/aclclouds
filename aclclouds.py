@@ -179,16 +179,16 @@ class AclcloudsRenewal:
                 #self.send_telegram_notify("已点击Renew按钮", renew_screenshot)
 
                 # 5.点击Verify按钮
-                selector = ".auth-captcha-checkbox"
-                self.log("🖱️ 点击验证按钮")
-                sb.wait_for_element_visible(selector, timeout=10)
+                #selector = ".auth-captcha-checkbox"
+                #self.log("🖱️ 点击验证按钮")
+                #sb.wait_for_element_visible(selector, timeout=10)
                 # 点击（SeleniumBase 默认自动处理可点击状态）
-                self.log("✅ 找到Verify按钮并点击")
-                sb.click(selector)
-                time.sleep(5)
-                clickverify_screenshot = f"{self.screenshot_dir}/clickverify.png"
-                sb.save_screenshot(clickverify_screenshot)
-                self.send_telegram_notify("已点击验证按钮", clickverify_screenshot)
+                #self.log("✅ 找到Verify按钮并点击")
+                #sb.click(selector)
+                #time.sleep(5)
+                #clickverify_screenshot = f"{self.screenshot_dir}/clickverify.png"
+                #sb.save_screenshot(clickverify_screenshot)
+                #self.send_telegram_notify("已点击验证按钮", clickverify_screenshot)
 
                 # 6.查找I am not a robot坐标并点击
                 el = sb.find_element(
@@ -199,11 +199,13 @@ class AclcloudsRenewal:
                 x = rect["x"] + rect["width"] / 2
                 y = rect["y"] + rect["height"] / 2
                 print("验证码坐标:", x, y)
+                print(sb.get_window_size())
+                print(el.rect)
                 actions = ActionChains(sb.driver)
                 actions.move_to_element_with_offset(
                     el,
-                    0,
-                    0
+                    x,
+                    y
                 )
                 actions.pause(0.3)
                 actions.click()
