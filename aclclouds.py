@@ -106,25 +106,23 @@ class AclcloudsRenewal:
         actions.perform()
 
     def try_keep_click(self, sb):
-        el = sb.find_element(
-            "xpath",
-            "//*[contains(text(),'I am not a robot')]"
-        )
-        rect = el.rect
-        x = rect["width"]/2
-        y = rect["height"]/2
-        self.log(f"I am not a robot中心坐标:横向-{x},纵向-{y}")
-        self.log(f"将纵向-{y}向下移动3倍即乘以4")
-        new_y = y * 4
-        actions = ActionChains(sb.driver)
-        actions.move_to_element_with_offset(
-            el,
-            x,
-            new_y
-        )
-        actions.pause(2)
-        actions.click()
-        actions.perform()
+        xpath = "//*[contains(text(),'I am not a robot')]"
+        if sb.is_element_present("xpath", xpath): 
+            el = sb.find_element("xpath", xpath)
+            rect = el.rect
+            x = rect["width"]/2
+            y = rect["height"]/2
+            self.log(f"I am not a robot中心坐标:横向-{x},纵向-{y}")
+            self.log(f"将纵向-{y}向下移动3倍即乘以4")
+            new_y = y * 4
+            actions = ActionChains(sb.driver)
+            actions.move_to_element_with_offset(el,x,new_y)
+            actions.pause(2)
+            actions.click()
+            actions.perform()
+            return True
+        else:
+            return False
         
     
     def run_crack(self, sb, i):
@@ -240,9 +238,11 @@ class AclcloudsRenewal:
 
                 # 6.检查是否出现验证码点持续点击第一张图片
                 if not sb.is_element_visible("text=Server renewed successfully"):
-                    # 尝试20次
-                    for i in range(20):
-                        self.try_keep_click(sb)
+                    self.log("🖱️ 开始持续点击破解")
+                    for i in range(20): # 尝试20次
+                        clicked = self.try_keep_click(sb)
+                        if clicked:
+                            self.log(f"🖱️已第{i}次点击第一张图片")
                         time.sleep(3)
                         if sb.is_element_visible("text=Server renewed successfully"):
                             self.log("✅ 验证码图片破解成功")
