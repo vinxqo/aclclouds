@@ -217,18 +217,6 @@ class AclcloudsRenewal:
                 #sb.save_screenshot(renew_screenshot)
                 #self.send_telegram_notify("已点击Renew按钮", renew_screenshot)
 
-                # 5.点击Verify按钮
-                #selector = ".auth-captcha-checkbox"
-                #self.log("🖱️ 点击验证按钮")
-                #sb.wait_for_element_visible(selector, timeout=10)
-                # 点击（SeleniumBase 默认自动处理可点击状态）
-                #self.log("✅ 找到Verify按钮并点击")
-                #sb.click(selector)
-                #time.sleep(5)
-                #clickverify_screenshot = f"{self.screenshot_dir}/clickverify.png"
-                #sb.save_screenshot(clickverify_screenshot)
-                #self.send_telegram_notify("已点击验证按钮", clickverify_screenshot)
-
                 # 5.查找I am not a robot坐标并点击
                 self.try_click_robot(sb)
                 time.sleep(3)
@@ -246,31 +234,12 @@ class AclcloudsRenewal:
                         time.sleep(3)
                         if sb.is_element_visible("text=Server renewed successfully"):
                             self.log("✅ 验证码图片破解成功")
+                            verify_screenshot = f"{self.screenshot_dir}/verify.png"
+                            sb.save_screenshot(verify_screenshot)
+                            self.send_telegram_notify("验证码图片点击完毕", verify_screenshot)
                             break
-                self.log("✅ 流程完毕")
-                verify_screenshot = f"{self.screenshot_dir}/verify.png"
-                sb.save_screenshot(verify_screenshot)
-                self.send_telegram_notify("验证码图片点击完毕", verify_screenshot)
-                return
-                
-                if not sb.is_element_visible("text=Server renewed successfully"):
-                    self.log("🔥 开始执行验证码破解")
-                    for i in range(20):
-                        self.run_crack(sb, i)
-                        time.sleep(2)
-                        if sb.is_element_visible("text=Server renewed successfully"):
-                            self.log("✅ 验证码破解成功")
-                            break
-                    if not sb.is_element_visible("text=Anti-bot confirmation"):
-                        time.sleep(90)
-                        selector = "button:contains('Renew')"
-                        sb.wait_for_element_visible(selector, timeout=10)
-                        sb.scroll_to(selector)
-                        self.log("🖱️ 已等待1分半钟并开始点击Renew按钮")
-                        sb.click(selector)
-                        time.sleep(5)
                         
-                # 6.刷新项目页面取剩余时间
+                # 7.刷新项目页面取剩余时间
                 self.log("📂 再次进入Project页面")
                 sb.uc_open_with_reconnect(PROJECT_URL, reconnect_time=25)
                 time.sleep(5)
