@@ -2,8 +2,11 @@ name: Aclclouds-Renew
 
 on:
   workflow_dispatch:
-  #schedule:
-   # - cron: '* */8 * * *'
+  schedule:
+    - cron: '0 22 * * *'    
+    
+permissions:
+  contents: write
 
 jobs:
   run_renewal:
@@ -53,3 +56,12 @@ jobs:
       run: |
         # 使用 xvfb 运行以支持强力过人机验证模式
         xvfb-run -a python aclclouds.py
+
+    - name: Keepalive
+      run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          date -u > .keepalive
+          git add .keepalive
+          git commit -m "chore: keepalive $(date -u +%Y-%m-%d)"
+          git push
